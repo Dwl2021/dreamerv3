@@ -4,6 +4,9 @@ import crafter
 import elements
 import embodied
 import numpy as np
+import matplotlib.pyplot as plt
+import os
+import cv2
 
 
 class Crafter(embodied.Env):
@@ -43,6 +46,7 @@ class Crafter(embodied.Env):
         'reset': elements.Space(bool),
     }
 
+  
   def step(self, action):
     if action['reset'] or self._done:
       self._episode += 1
@@ -54,6 +58,24 @@ class Crafter(embodied.Env):
     image, reward, self._done, info = self._env.step(action['action'])
     self._reward += reward
     self._length += 1
+       
+    # begin to save video
+    video_dir = './videos/'
+    os.makedirs(video_dir, exist_ok=True)
+    if self._length == 1:
+        self._video_path = os.path.join(video_dir, f'episode_{self._episode % 20}.mp4')
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        self._video_writer = cv2.VideoWriter(
+            self._video_path, fourcc, 10.0, 
+            (image.shape[1], image.shape[0]))
+    if hasattr(self, '_video_writer'):
+        frame = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        self._video_writer.write(frame)
+        if self._done:
+            self._video_writer.release()
+            print(f"Saved video: {self._video_path}")
+    # end for videos save
+    
     if self._done and self._logdir:
       self._write_stats(self._length, self._reward, info)
     return self._obs(
